@@ -46,6 +46,8 @@ function defaultState() {
     discovered: { pois: [], stations: [] },
     visitedPois: {}, // poiId -> visit count
     mealsEaten: 0,
+    cheapMeals: 0,
+    leisureVisits: 0,
     subwayRides: 0,
     missionProgress: {}, // missionId -> { objectiveId: progress }
     missionsCompleted: [],
@@ -101,6 +103,8 @@ function sanitize(raw) {
     }
   }
   s.mealsEaten = clamp(Math.round(Number(raw.mealsEaten) || 0), 0, 999999);
+  s.cheapMeals = clamp(Math.round(Number(raw.cheapMeals) || 0), 0, 999999);
+  s.leisureVisits = clamp(Math.round(Number(raw.leisureVisits) || 0), 0, 999999);
   s.subwayRides = clamp(Math.round(Number(raw.subwayRides) || 0), 0, 999999);
   if (raw.missionProgress && typeof raw.missionProgress === 'object') {
     for (const [mid, objs] of Object.entries(raw.missionProgress)) {

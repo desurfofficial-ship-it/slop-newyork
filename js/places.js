@@ -145,6 +145,7 @@ export function createPlaces({ state, economy, bus }) {
         if (!economy.spend(item.cents, `${item.label} · ${spot.name}`)) return false;
         applyNeed(item.need);
         state.recordMeal();
+        bus.emit('meal-eaten', { cents: item.cents, label: item.label });
         state.advanceMinutes(10);
         bus.emit('toast', { text: `${item.label} from ${spot.name}. ${item.need.hunger <= -30 ? 'That was a real meal.' : 'Quick and cheap.'}`, kind: 'ok' });
         return true;
@@ -155,10 +156,19 @@ export function createPlaces({ state, economy, bus }) {
   function homeActions() {
     const housing = state.state.housing;
     const isHome = housing !== null;
-    const label = isHome ? 'Head upstairs & sleep until 7 AM' : `Sleep at ${HOTEL.name} until 7 AM`;
     return [{
+      id: 'check-in',
+      label: 'Get your room key',
+      sub: 'Newcomer check-in · free',
+      run() {
+        state.recordPoiVisit(HOTEL.id);
+        state.advanceMinutes(5);
+        bus.emit('toast', { text: 'Room key in pocket. This is your base until you find your own place.', kind: 'ok' });
+        return true;
+      }
+    }, {
       id: 'sleep',
-      label,
+      label: isHome ? 'Head upstairs & sleep until 7 AM' : `Sleep at ${HOTEL.name} until 7 AM`,
       sub: isHome ? 'Free · wakes you rested' : 'Included for visitors',
       run() {
         const now = MINUTES_AT(state.state.clock.minutes);
