@@ -118,6 +118,7 @@ export const STATIONS = STATION_DEFS.map(([name, lines, pos]) => ({
   id: `st-${name}-${Math.round(pos.x)}-${Math.round(pos.z)}`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, ''),
   name,
   lines,
+  color: LINE_COLORS[lines[0]],
   x: pos.x,
   z: pos.z,
   heading: Math.PI,

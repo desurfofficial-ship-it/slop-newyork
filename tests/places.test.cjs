@@ -20,13 +20,13 @@ function withStorage() {
   };
 }
 
-function setup({ mode = 'resident' } = {}) {
+function setup({ mode = 'resident', rng = () => 0.99 } = {}) {
   withStorage();
   const game = gameStateModule.createGameState();
   game.startNewGame({ mode, arrival: 'penn' });
   const bus = game.bus;
   const economy = economyModule.createEconomy({ state: game, bus });
-  const places = placesModule.createPlaces({ state: game, economy, bus });
+  const places = placesModule.createPlaces({ state: game, economy, bus, rng });
   return { game, economy, places, bus };
 }
 
@@ -166,6 +166,17 @@ test('sleeping advances to 07:00 and restores energy; attractions cost and refre
   const park = places.placeById('att-bryant');
   assert.equal(places.actionsFor(park).find((a) => a.id === 'visit').run(), true);
   assert.equal(game.state.moneyCents, before - 1950, 'the park is still free');
+});
+
+test('lucky shifts earn a tip on top of the wage', () => {
+  const { game, places } = setup({ rng: () => 0.0 });
+  const spot = places.placeById('job-cafe');
+  places.actionsFor(spot).find((a) => a.id === 'apply').run();
+  const shift = places.actionsFor(spot).find((a) => a.id === 'shift');
+  const before = game.state.moneyCents;
+  shift.run();
+  const earned = game.state.moneyCents - before;
+  assert.ok(earned > 7000 && earned <= 7000 + 3000, `tip lands within the plausible range (${earned})`);
 });
 
 test('place scanning finds the nearest spot within radius only', () => {

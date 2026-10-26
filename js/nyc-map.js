@@ -441,6 +441,7 @@ class NYCMapSystem {
     this.allBlocks = allBlocks;
     this.onTeleport = onTeleport;
     this.onToggle = onToggle;
+    this.stations = []; // MTA bullet dots (set later via setStations, see subway.js)
 
     this.miniCanvas = document.getElementById('minimap-canvas');
     this.miniCtx = this.miniCanvas ? this.miniCanvas.getContext('2d') : null;
@@ -648,6 +649,11 @@ class NYCMapSystem {
     }
   }
 
+  // Subway station dots arrive after the map itself (the subway module builds them from the grid).
+  setStations(stations) {
+    this.stations = Array.isArray(stations) ? stations : [];
+  }
+
   /**
    * Street / landmark search: highlights every stretch of the matching streets and frames them (or flies to the
    * matching landmark)
@@ -658,6 +664,7 @@ class NYCMapSystem {
     this.searchPath = null;
     if (q.length > 0) {
       const lmMatch = NYC_LANDMARKS.find((l) => l.name.toLowerCase().includes(q) || l.short.toLowerCase().includes(q));
+      const stMatch = this.stations.find((s) => s.name.toLowerCase().includes(q) && q.length >= 4);
       const roads = ROAD_LABELS.filter((l) => l.lower.includes(q) || l.raw.includes(q));
       if (roads.length) {
         this.searchPath = new Path2D();
@@ -675,6 +682,10 @@ class NYCMapSystem {
         this.viewCenterX = lmMatch.x;
         this.viewCenterZ = lmMatch.z;
         this.viewZoom = Math.max(this.viewZoom, 0.9);
+      } else if (stMatch) {
+        this.viewCenterX = stMatch.x;
+        this.viewCenterZ = stMatch.z;
+        this.viewZoom = Math.max(this.viewZoom, 1.1);
       } else if (roads.length) {
         const b = this.searchBounds;
         const { w, h } = this.fullSize();
@@ -1068,6 +1079,22 @@ class NYCMapSystem {
       }
     }
 
+    // Subway station blips: line-colored bullets with a dark core
+    for (const st of this.stations) {
+      const sx = toX(st.x);
+      const sy = toY(st.z);
+      if (Math.abs(sx) < w * 0.48 && Math.abs(sy) < h * 0.48) {
+        ctx.fillStyle = st.color;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 3.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(10, 11, 13, 0.9)';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
     // Camera FOV Cone & Player Arrow at center (0, 0)
     const camDir = this.cameraSystem.currentLookAt.clone().sub(this.cameraSystem.currentPos);
     const camAngle = Math.atan2(camDir.x, camDir.z);
@@ -1193,6 +1220,38 @@ class NYCMapSystem {
       placed.push([lx - 6, ly - 6, lx + 6, ly + 6]);
       if (showLabel) placed.push(box);
       pins.push({ lm, lx, ly, showLabel });
+    }
+
+    // 3b. Subway stations as line-colored bullets (labels only when the atlas is zoomed in)
+    if (this.stations.length) {
+      ctx.font = `700 10px ${FONT}`;
+      for (const st of this.stations) {
+        const sx = toX(st.x);
+        const sy = toY(st.z);
+        if (Math.abs(sx) > w * 0.48 || Math.abs(sy) > h * 0.48) continue;
+        ctx.fillStyle = 'rgba(10, 11, 13, 0.55)';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = st.color;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 4.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(10, 11, 13, 0.9)';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+        if (s > 0.55) {
+          const label = st.name.split('–')[0];
+          const labelW = this.textWidth(ctx, label) + 6;
+          const box = [sx + 6, sy - 7, sx + 8 + labelW, sy + 7];
+          if (!overlaps(placed, box)) {
+            placed.push(box);
+            ctx.fillStyle = 'rgba(246, 245, 242, 0.82)';
+            ctx.fillText(label, sx + 10, sy + 3.5);
+          }
+        }
+      }
     }
 
     // 4. Borough, waterway & neighbourhood watermark titles (wherever they fit), letter-spaced like a printed atlas

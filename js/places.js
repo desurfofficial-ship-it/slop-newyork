@@ -129,7 +129,7 @@ export const SLEEP_TARGET = 7 * 60; // sleep until 07:00
 
 const MINUTES_AT = (minutes) => ((Math.round(minutes) % 1440) + 1440) % 1440;
 
-export function createPlaces({ state, economy, bus }) {
+export function createPlaces({ state, economy, bus, rng = Math.random }) {
   function applyNeed(deltas) {
     if (!deltas) return;
     if (deltas.hunger) state.setNeed('hunger', state.state.needs.hunger + deltas.hunger);
@@ -270,7 +270,7 @@ export function createPlaces({ state, economy, bus }) {
               state.advanceMinutes(SHIFT_MINUTES);
               state.recordShift();
               let pay = job.shiftPayCents;
-              const bonus = Math.random() < 0.2 ? Math.round((1500 + Math.random() * 1500) / 100) * 100 : 0;
+              const bonus = rng() < 0.2 ? Math.round((1500 + rng() * 1500) / 100) * 100 : 0;
               economy.earn(pay + bonus, bonus ? `${place.title} · ${place.employer} (+tip)` : `${place.title} · ${place.employer}`);
               if (bonus) bus.emit('toast', { text: `A regular tipped you ${economy.format(bonus)}.`, kind: 'ok' });
               return true;
