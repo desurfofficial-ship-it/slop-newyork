@@ -18,6 +18,7 @@ import { cityUniforms, createSteamMaterial, createTreeGrateMaterial, createGodRa
 import { createTreeField } from './trees.js';
 import { pavedPlazaRects, centralParkClearings, parkTreeSites, sidewalkBlocks, parkLampSites } from './city-grid.js';
 import { bryantParkLawn } from './landmarks.js';
+import { STATIONS as SUBWAY_STATIONS } from './subway.js';
 
 // js/street-details.js
 // Populates Manhattan streets with authentic NYC street furniture using InstancedMesh:
@@ -727,8 +728,19 @@ function buildStreetDetails(scene) {
     return { x, z };
   };
 
-  for (const [oldX, oldZ] of subwayLocations) {
-    const raw = fromOldFrame(oldX, oldZ); // (authored on the former compressed grid)
+  // Every station in subway.js gets a physical stair (the 11 originals below were authored on the
+  // former compressed grid; the rest are the real station coordinates, snapped to the curb).
+  const subwayStops = [
+    ...subwayLocations.map(([oldX, oldZ]) => fromOldFrame(oldX, oldZ)),
+    ...SUBWAY_STATIONS
+      .filter((s) => !subwayLocations.some(([oldX, oldZ]) => {
+        const p = fromOldFrame(oldX, oldZ);
+        return Math.hypot(p.x - s.x, p.z - s.z) < 9; // the original stairs already cover these
+      }))
+      .map((s) => ({ x: s.x, z: s.z }))
+  ];
+
+  for (const raw of subwayStops) {
     const { x: subX, z: subZ } = snapToCurbIsland(raw.x, raw.z, 1.2);
     // Iron railing enclosure around sidewalk stairs
     dummy.position.set(subX, 0.8, subZ);

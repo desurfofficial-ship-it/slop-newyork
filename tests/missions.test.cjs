@@ -81,7 +81,7 @@ test('housing, job and shifts drive the middle of the chain', () => {
 });
 
 test('exploration counts any six distinct places', () => {
-  const { game, missions } = setup({ mode: 'freeroam' });
+  const { game, missions } = setup();
   skipTo(game, 'm-first-day', 'm-get-around', 'm-eat-budget', 'm-find-place', 'm-first-job');
   assert.equal(missions.current().id, 'm-explore');
   for (const id of ['deli-penn', 'pizza-times', 'cart-6th', 'deli-herald', 'market-union', 'bakery-kanal']) {
@@ -92,7 +92,7 @@ test('exploration counts any six distinct places', () => {
 });
 
 test('three leisure activities complete the weekend mission; make-it needs everything', () => {
-  const { game, missions } = setup({ mode: 'freeroam' });
+  const { game, missions } = setup();
   skipTo(game, 'm-first-day', 'm-get-around', 'm-eat-budget', 'm-find-place', 'm-first-job', 'm-explore');
   assert.equal(missions.current().id, 'm-weekend');
   game.recordPoiVisit('att-bryant');

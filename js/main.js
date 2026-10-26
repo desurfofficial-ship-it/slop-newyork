@@ -19,6 +19,7 @@ import { LightingSystem } from './lighting.js';
 import { NYCMapSystem } from './nyc-map.js';
 import { setupSceneCulling, updateSceneCulling } from './scene-culling.js';
 import { CityAudioSystem } from './audio-system.js';
+import { createLifeSim } from './life.js';
 
 // js/main.js
 // Main entry point for New York City (Midtown Manhattan) in Three.js WebGPURenderer & TSL (three.js dev, see index.html)
@@ -311,17 +312,26 @@ async function initApp() {
     selectCamera(CAMERA_PRESETS[(idx + step + n) % n].id, true);
   }
 
-  function selectTime(timeId) {
+  let lifeSim = null; // created once the map exists (see below); selectTime syncs with its day cycle
+
+  function selectTime(timeId, opts = {}) {
+    // 'auto' (the Live switch) and manual picks are negotiated with the day cycle in life.js;
+    // the day cycle itself calls back in with fromDayCycle so the light simply follows the clock.
+    if (!opts.fromDayCycle && lifeSim && lifeSim.handleTimeSelection(timeId)) {
+      lifeSim.syncAutoButton(lifeSim.dayCycle.auto);
+      return;
+    }
     lightingSystem.applyPreset(timeId);
     colorGrade.applyPreset(lightingSystem.activePresetId);
     timeButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.getAttribute('data-time') === timeId);
     });
+    if (lifeSim) lifeSim.syncAutoButton(lifeSim.dayCycle.auto);
   }
 
   // Popovers (native [popover]: light dismiss & Esc for free) open against the control that toggles them: data-anchor
   // names the element they sit above / below, data-align the one whose right edge they line up with
-  const popovers = document.querySelectorAll('.popover[popover]');
+  const popovers = document.querySelectorAll('.popover[popover][data-anchor]');
   const supportsPopover = typeof HTMLElement.prototype.togglePopover === 'function';
   function closePopovers() {
     if (!supportsPopover) return;
@@ -462,6 +472,16 @@ async function initApp() {
     },
     onTeleport: teleportTo
   });
+
+  // Life simulation: wallet, needs, the live clock, subway, places, NPCs, missions & UI (life.js)
+  lifeSim = createLifeSim({
+    controllerManager,
+    mapSystem,
+    teleportTo,
+    selectTime,
+    isMapOpen: () => mapSystem.isFullMapOpen
+  });
+  lifeSim.syncAutoButton(lifeSim.dayCycle.auto);
 
   teleportButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -681,6 +701,7 @@ async function initApp() {
     if (cityBlocks.updateLights) cityBlocks.updateLights(cameraSystem.camera);
     if (streetDetails.update) streetDetails.update(cameraSystem.camera);
     lightingSystem.update(cameraSystem.currentPos);
+    lifeSim.update(dt, rawDt);
     mapSystem.update();
     audioSystem.update(dt, elapsed, cameraSystem.camera, lightingSystem.activePresetId === 'midnight');
     if (warmedUp) updateSceneCulling(cameraSystem.camera.position); // the warm-up frame draws every chunk
@@ -718,6 +739,7 @@ async function initApp() {
         initTimings = null;
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
         audioSystem.ready = true;
+        lifeSim.onCityReady();
         setLoadingProgress(1);
       });
     }
@@ -751,4 +773,8 @@ async function initApp() {
   });
 }
 
-initApp();
+initApp().catch((error) => {
+  console.error('[init] failed', error);
+  const status = document.getElementById('loading-status');
+  if (status) status.textContent = 'Something went wrong loading the city — see the console.';
+});

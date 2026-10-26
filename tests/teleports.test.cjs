@@ -55,7 +55,18 @@ test('preset and map teleports share arrival resets and mark the resolved landin
     trafficSystem: {},
     NYCMapSystem: class {
       constructor(options) { this.onTeleport = options.onTeleport; map = this; }
+      setStations() {}
     },
+    selectTime: () => {},
+    createLifeSim: () => ({
+      state: null,
+      dayCycle: { auto: true },
+      update: () => {},
+      onCityReady: () => {},
+      syncAutoButton: () => {},
+      handleTimeSelection: () => false,
+      save: () => {}
+    }),
     teleportButtons: Object.keys(TELEPORT_LOCATIONS).map((key) => ({
       getAttribute: () => key,
       addEventListener: (_event, handler) => handlers.set(key, handler)

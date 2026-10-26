@@ -6,6 +6,8 @@
 //
 // In Free Roam mode nothing is tracked (see PLAY_MODES.tracksMissions).
 
+import { PLAY_MODES } from './game-state.js';
+
 const MISSIONS = [
   {
     id: 'm-first-day',
@@ -106,7 +108,8 @@ export function createMissions({ state, bus, economy }) {
   }
 
   function trackable() {
-    return state.state.started;
+    const mode = PLAY_MODES[state.state.mode];
+    return state.state.started && Boolean(mode && mode.tracksMissions);
   }
 
   function status(mission) {

@@ -32,12 +32,12 @@ const formatClock = (minutes) => {
 export { formatClock };
 
 export function createDayCycle({ state, applyPreset, onAutoChange }) {
-  let auto = state.settings.autoTime;
+  let auto = state.state.settings.autoTime;
   let appliedPreset = null;
   let clockAccumulator = 0; // fractional game minutes; 1 real second = 1 game minute
 
   function syncPreset(force = false) {
-    const wanted = presetForMinutes(state.clock.minutes);
+    const wanted = presetForMinutes(state.state.clock.minutes);
     if (force || wanted !== appliedPreset) {
       appliedPreset = wanted;
       applyPreset(wanted);
@@ -62,7 +62,7 @@ export function createDayCycle({ state, applyPreset, onAutoChange }) {
     // A hand-picked preset pauses the live cycle (the player owns the light until they resume).
     setManual(presetId) {
       auto = false;
-      if (state.settings.autoTime) state.setSetting('autoTime', false);
+      if (state.state.settings.autoTime) state.setSetting('autoTime', false);
       appliedPreset = presetId;
       if (onAutoChange) onAutoChange(false);
     },
@@ -70,7 +70,7 @@ export function createDayCycle({ state, applyPreset, onAutoChange }) {
     // dt: real seconds. Only the started session advances the city clock.
     update(dt, started) {
       if (started && auto) {
-        const speed = state.settings.clockSpeed === 2 ? 2 : state.settings.clockSpeed === 4 ? 4 : 1;
+        const speed = state.state.settings.clockSpeed === 2 ? 2 : state.state.settings.clockSpeed === 4 ? 4 : 1;
         clockAccumulator += dt * speed;
         if (clockAccumulator >= 0.5) {
           const minutes = Math.floor(clockAccumulator);

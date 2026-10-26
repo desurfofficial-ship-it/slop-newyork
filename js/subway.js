@@ -166,6 +166,11 @@ export function createSubway() {
     stations: STATIONS,
     fareCents: FARE_CENTS,
 
+    // Bullet color for a line letter (used by the UI and the map dots).
+    colorFor(line) {
+      return LINE_COLORS[line] || null;
+    },
+
     stationById(id) {
       return STATIONS.find((s) => s.id === id) || null;
     },
